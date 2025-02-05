@@ -90,9 +90,5 @@ PROCEDURE add_employee (
      
         log_util.log_finish('add_employee');
     END add_employee;
-/
 
-     
-        log_util.log_finish('add_employee');
-    END add_employee;
-/
+
