@@ -23,8 +23,11 @@ BEGIN
                    column_id
             FROM all_tab_columns
             WHERE owner = p_source_scheme
-              AND table_name IN ('EMPLOYEES', 'LOGS')
-        )
+              AND table_name IN (
+    SELECT COLUMN_VALUE 
+    FROM TABLE(util.table_from_list(p_list_val => p_list_table)))
+)
+
         GROUP BY table_name
     ) LOOP
         BEGIN
