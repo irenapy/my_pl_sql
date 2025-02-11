@@ -1,11 +1,12 @@
 CREATE OR REPLACE PROCEDURE copy_table(
     p_source_scheme IN VARCHAR2,
     p_target_scheme IN VARCHAR2 DEFAULT USER,
+    p_list_table IN VARCHAR2,
     p_copy_data IN BOOLEAN DEFAULT FALSE,
     po_result OUT VARCHAR2
 ) AS
     v_table_name VARCHAR2(255);
-    v_code VARCHAR2(4000);
+    v_ddl_code VARCHAR2(4000);
     v_sql VARCHAR2(4000);
 BEGIN
     FOR r IN (
@@ -21,15 +22,15 @@ BEGIN
                    END AS count_symbol,
                    column_id
             FROM all_tab_columns
-            WHERE owner = 'IRINA_II6'
-              AND table_name IN ('EMPLOYEES', 'LOGS')  
+            WHERE owner = p_source_scheme
+              AND table_name IN ('EMPLOYEES', 'LOGS')
         )
         GROUP BY table_name
     ) LOOP
         BEGIN
             v_table_name := r.table_name;
-            v_code := r.ddl_code;
-            EXECUTE IMMEDIATE v_code;
+            v_ddl_code := r.ddl_code;
+            EXECUTE IMMEDIATE v_ddl_code;
             to_log('Таблиця ' || v_table_name || ' створена у ' || p_target_scheme, 'INFO');
 
             IF p_copy_data THEN
@@ -48,5 +49,5 @@ BEGIN
 EXCEPTION
     WHEN OTHERS THEN
         po_result := 'Error: ' || SQLERRM;
-        to_log(po_result, 'ПОМИЛКА');
+        to_log(po_result, 'ERROR');
 END copy_table;
