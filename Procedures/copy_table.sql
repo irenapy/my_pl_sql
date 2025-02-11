@@ -6,7 +6,7 @@ CREATE OR REPLACE PROCEDURE copy_table(
     po_result OUT VARCHAR2
 ) AS
     v_table_name VARCHAR2(255);
-    v_ddl_code VARCHAR2(4000);
+    v_code VARCHAR2(4000);
     v_sql VARCHAR2(4000);
 BEGIN
     FOR r IN (
@@ -24,7 +24,7 @@ BEGIN
             FROM all_tab_columns
             WHERE owner = p_source_scheme
               AND table_name IN (
-    SELECT COLUMN_VALUE 
+    SELECT * 
     FROM TABLE(util.table_from_list(p_list_val => p_list_table)))
 )
 
@@ -32,8 +32,8 @@ BEGIN
     ) LOOP
         BEGIN
             v_table_name := r.table_name;
-            v_ddl_code := r.ddl_code;
-            EXECUTE IMMEDIATE v_ddl_code;
+            v_code := r.ddl_code;
+            EXECUTE IMMEDIATE v_code;
             to_log('Таблиця ' || v_table_name || ' створена у ' || p_target_scheme, 'INFO');
 
             IF p_copy_data THEN
