@@ -36,25 +36,26 @@ PROCEDURE api_nbu_sync IS
     v_rate NUMBER;
     v_id_number NUMBER;
 BEGIN
-   
+    
     BEGIN
         SELECT value_text INTO v_list_currencies
         FROM sys_params
         WHERE param_name = 'list_currencies';
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            DBMS_OUTPUT.PUT_LINE('Помилка: Данних немає!');
-            RAISE;
+            log_util.log_error('api_nbu_sync', 'Помилка: Параметр не знайдено', 'Параметр не існує');
+            RAISE_APPLICATION_ERROR(-20001, 'Помилка!');
         WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('Помилка отримання: ' || SQLERRM);
+            log_util.log_error('api_nbu_sync', 'Помилка: ' || SQLERRM, 'Помилка при вибірці');
             RAISE;
     END;
     
     
     FOR r IN (SELECT column_value AS curr FROM TABLE(util.table_from_list(v_list_currencies))) LOOP
         BEGIN
-           
+            
             SELECT rate INTO v_rate FROM TABLE(util.get_currency(p_currency => r.curr));
+            
             
             SELECT MAX(id_number) + 1 INTO v_id_number FROM cur_exchange;
             
@@ -63,11 +64,13 @@ BEGIN
             VALUES (v_id_number, r.curr, v_rate, SYSDATE);
         EXCEPTION
             WHEN OTHERS THEN
+                log_util.log_error('api_nbu_sync', 'Помилка оброблення ' || r.curr || ': ' || SQLERRM, 'Помилка при вставці');
                 DBMS_OUTPUT.PUT_LINE('Помилка оброблення ' || r.curr || ': ' || SQLERRM);
         END;
     END LOOP;
     
-    DBMS_OUTPUT.PUT_LINE('Успішно зваершено!');
+    log_util.log_finish('Виконано успішно');
+    DBMS_OUTPUT.PUT_LINE('Успішно завершено!');
 END api_nbu_sync;
 ------------------------------------------------------------------------------------------------------------
 PROCEDURE change_attribute_employee(
