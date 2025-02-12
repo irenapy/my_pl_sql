@@ -1,4 +1,6 @@
 ---------------------------------------------------------------SPECIFICATION-------------------------------------------------------------------------------
+PROCEDURE api_nbu_sync;
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 PROCEDURE change_attribute_employee(
     p_employee_id      IN NUMBER, 
     p_first_name       IN VARCHAR2 DEFAULT NULL,
@@ -28,6 +30,46 @@ PROCEDURE add_employee (
         p_manager_id     IN NUMBER DEFAULT 100,
         p_department_id  IN NUMBER);
 ---------------------------------------------------------------BODY------------------------------------------------------------------------------------------
+PROCEDURE api_nbu_sync IS
+    v_list_currencies VARCHAR2(2000);
+    v_currency VARCHAR2(10);
+    v_rate NUMBER;
+    v_id_number NUMBER;
+BEGIN
+   
+    BEGIN
+        SELECT value_text INTO v_list_currencies
+        FROM sys_params
+        WHERE param_name = 'list_currencies';
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Помилка: Данних немає!');
+            RAISE;
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Помилка отримання: ' || SQLERRM);
+            RAISE;
+    END;
+    
+    
+    FOR r IN (SELECT column_value AS curr FROM TABLE(util.table_from_list(v_list_currencies))) LOOP
+        BEGIN
+           
+            SELECT rate INTO v_rate FROM TABLE(util.get_currency(p_currency => r.curr));
+            
+            SELECT MAX(id_number) + 1 INTO v_id_number FROM cur_exchange;
+            
+            
+            INSERT INTO cur_exchange (id_number, currency, exchange_rate, exchange_date)
+            VALUES (v_id_number, r.curr, v_rate, SYSDATE);
+        EXCEPTION
+            WHEN OTHERS THEN
+                DBMS_OUTPUT.PUT_LINE('Помилка оброблення ' || r.curr || ': ' || SQLERRM);
+        END;
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Успішно зваершено!');
+END api_nbu_sync;
+------------------------------------------------------------------------------------------------------------
 PROCEDURE change_attribute_employee(
     p_employee_id      IN NUMBER, 
     p_first_name       IN VARCHAR2 DEFAULT NULL,
